@@ -177,5 +177,5 @@ alter table inspection_records
 
 # Add phone numbers using python
 select distinct name, address, city
-from records
+from businesses
 where phone is null
