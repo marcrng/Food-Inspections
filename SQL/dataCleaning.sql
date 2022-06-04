@@ -35,52 +35,53 @@ having count(*) > 1;
 select name, address, description, city, zip_code, phone, business_id
 from records
 where address is null
-or description is null
-or city is null
-or zip_code is null
-or business_id is null;
+   or description is null
+   or city is null
+   or zip_code is null
+   or business_id is null;
 
 # TODO: Use python to scrape and iteratively fill missing phone numbers using name and address with google search
 
 # Create table for violation code reference
-create table violation_codes (
-    id int,
+create table violation_codes
+(
+    id          int,
     description varchar(255),
-    points smallint,
-    color_code varchar(30)
+    points      smallint,
+    color_code  varchar(30)
 );
 
 # Create table of business names, description, address, city, zip, phone, lon, lat, business_id, grade
-create table businesses(
-    id varchar(255),
-    name varchar(255),
-    program_identifier varchar(255),
-    description varchar(255),
-    grade varchar(5),
-    address varchar(255),
-    city varchar (255),
-    zip varchar(25),
-    phone varchar(25),
-    longitude double,
-    latitude double,
+create table businesses
+(
+    id                       varchar(255),
+    name                     varchar(255),
+    program_identifier       varchar(255),
+    description              varchar(255),
+    grade                    varchar(5),
+    address                  varchar(255),
+    city                     varchar(255),
+    zip                      varchar(25),
+    phone                    varchar(25),
+    longitude                double,
+    latitude                 double,
     inspection_business_name varchar(255)
 );
 
 insert into businesses
-    select distinct
-                    business_id,
-                    name,
-                    program_identifier,
-                    description,
-                    grade,
-                    address,
-                    city,
-                    zip_code,
-                    phone,
-                    longitude,
-                    latitude,
-                    inspection_business_name
-    from records;
+select distinct business_id,
+                name,
+                program_identifier,
+                description,
+                grade,
+                address,
+                city,
+                zip_code,
+                phone,
+                longitude,
+                latitude,
+                inspection_business_name
+from records;
 
 # Check for duplicate business names, id
 select name, id, count(*)
@@ -90,7 +91,7 @@ having count(*) > 1;
 
 # Add violation_id column to main records table
 alter table records
-add column violation_id int;
+    add column violation_id int;
 
 select violation_description
 from records
@@ -109,46 +110,72 @@ where regexp_like(violation_description, '^[0-9]');
 # Find rows that did not have the violation_id in the violation_description and find the corresponding id's using a partial string join
 select distinct violation_description, id
 from records r
-    join violation_codes vc on left(r.violation_description, 20) = left(vc.description, 20)
+         join violation_codes vc on left(r.violation_description, 20) = left(vc.description, 20)
 where violation_description is not null
-and violation_id is null;
+  and violation_id is null;
 
 # Fill these values using matching from above query
 ## Inefficient but simple
 update records r, violation_codes vc
 set r.violation_id = vc.id
 where left(r.violation_description, 20) = left(vc.description, 20)
-and violation_id is null;
+  and violation_id is null;
 
 # Manually check if id's are correct
 select distinct violation_id, violation_description
 from records
 
-create table inspection_records(
-    id varchar(255),
-    `date` date,
-    business_id varchar(255),
+create table inspection_records
+(
+    id                  varchar(255),
+    `date`              date,
+    business_id         varchar(255),
     violation_record_id varchar(255),
-    violation_id int,
-    type varchar(255),
-    score int,
-    result varchar(25),
-    closed_business bool
+    violation_id        int,
+    type                varchar(255),
+    score               int,
+    result              varchar(25),
+    closed_business     bool
 );
 
 insert into inspection_records
-    select inspection_serial_num,
-           inspection_date,
-           business_id,
-           violation_record_id,
-           violation_id,
-           inspection_type,
-           inspection_score,
-           inspection_result,
-           inspection_closed_business
-    from records;
+select inspection_serial_num,
+       inspection_date,
+       business_id,
+       violation_record_id,
+       violation_id,
+       inspection_type,
+       inspection_score,
+       inspection_result,
+       inspection_closed_business
+from records;
 
 select distinct name, result
 from inspection_records
-join businesses b on inspection_records.business_id = b.id
+         join businesses b on inspection_records.business_id = b.id
 limit 5;
+
+# Drop null records
+delete
+from inspection_records
+where id is null;
+
+select id, count(*)
+from inspection_records
+group by id
+having count(*) > 1;
+
+# Add relationships for new tables
+alter table violation_codes
+    add constraint primary key (id);
+
+alter table businesses
+    add constraint primary key (id);
+
+alter table inspection_records
+    add foreign key (violation_id) references violation_codes (id)
+
+# Add phone numbers using python
+select distinct name, address, city
+from records
+where phone is null

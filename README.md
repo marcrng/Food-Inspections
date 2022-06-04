@@ -284,3 +284,13 @@ limit 5;
 |?al?al Cafe                     |                                                                                             |
 |100 LB CLAM                     |Incomplete                                                                                   |
 |100 LB CLAM                     |Unsatisfactory                                                                               |
+
+#### Drop rows where id is null
+Some businesses haven't been through an inspection, but still show up in the records table since they're registered
+```sql
+# Drop null records
+delete from inspection_records
+where id is null;
+```
+
+## Create relationships for new tables
