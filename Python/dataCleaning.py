@@ -22,20 +22,36 @@ cursor.execute(
     '''
     select distinct name, address, city
     from businesses
-    where phone is null'''
+    where phone is null
+    '''
+)
+
+count = cursor.execute(
+    '''
+    select count(distinct name, address, city)
+    from businesses
+    where phone is null
+    '''
 )
 
 result = cursor.fetchall()
 
 num_list = []
 
+counter = -1
 
 for x in result:
     url = " ".join(map(str, x))
     url = url.replace(" ", "+")
-    url = url.replace('#', '%')
+    url = url.replace('#', '%23')
     url = url.replace('&', '%26')
+    url = url.replace('\'', '%27')
+    url = url.replace('(', '%28')
+    url = url.replace(')', '%29')
+    url = url.replace('@', '%40')
     url = 'http://www.google.com/search?q=' + url
+
+    counter += 1
 
     print(url)
 
@@ -44,24 +60,26 @@ for x in result:
 
     df = pd.DataFrame(result)
 
-    #time.sleep(2)
+    num_list.append('Not Found')  # Add a 'Not Found' entry to be overwritten if a phone number is found
+
+    print(counter)
+
+    # time.sleep(2)
 
     for span in soup.findAll('span', class_='BNeawe tAd8D AP7Wnd'):
         phone = span.getText('aria-label')
         phonenum = re.findall(
+
             r'((?:\+\d{2}[-\.\s]??|\d{4}[-\.\s]??)?(?:\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}))',
-            phone)
+            phone
+        )
 
-        phonenum = phone = ''.join(phonenum)
+        if phonenum:
+            print(phonenum)
+            phonenum = phone = ''.join(phonenum)
+            num_list[counter] = phonenum
 
-        num_list.append(phonenum)
-        print(phonenum)
-
-
-print(num_list)
 df['phonenummer'] = num_list
 print(df)
 # Create dataframe with phone numbers and id
 df.to_csv('numbers.csv', encoding='utf-8', index=False)
-
-# Prevent regex from allowing blanks and use elif to append 'N/A' in case of missing numbers

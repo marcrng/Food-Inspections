@@ -173,9 +173,35 @@ alter table businesses
     add constraint primary key (id);
 
 alter table inspection_records
-    add foreign key (violation_id) references violation_codes (id)
+    add foreign key (violation_id) references violation_codes (id);
 
 # Add phone numbers using python
+## Updated over 1,500 rows
 select distinct name, address, city
 from businesses
-where phone is null
+where phone is null;
+
+select b.id, b.name, n.phone
+from businesses b
+    join numbers n on b.name = n.name;
+
+update businesses b, numbers n
+set b.phone = n.phone
+where b.name = n.name
+and b.phone is null;
+
+# Trim trailing whitespaces
+## Should have done this before using address to pull phone numbers
+update businesses b
+set city = trim(city);
+
+update businesses b
+set address = trim(address);
+
+# Add business id to numbers table to submit to King County
+alter table numbers
+add column business_id varchar(255);
+
+update numbers n, businesses b
+set business_id = b.id
+where n.name = b.name
