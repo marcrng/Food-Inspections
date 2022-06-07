@@ -204,4 +204,27 @@ add column business_id varchar(255);
 
 update numbers n, businesses b
 set business_id = b.id
-where n.name = b.name
+where n.name = b.name;
+
+select b.name, date, vc.description, ir. result, ir.closed_business
+from businesses b
+join inspection_records ir on b.id = ir.business_id
+join violation_codes vc on violation_id = vc.id
+where name like 'crawfish house%';
+
+update numbers n, records r
+set r.phone = n.phone
+where r.business_id = n.business_id
+and r.phone is null;
+
+# Finding out if there are businesses with null inspection_dates that have had inspections later down the line
+## Some businesses have real inspections later down the line, but with different business_id's
+select name, monthname(inspection_date), count(*)
+from records
+where name in (
+    select name
+    from records
+    where inspection_date is null
+    )
+group by name, month(inspection_date)
+order by name, month(inspection_date);
